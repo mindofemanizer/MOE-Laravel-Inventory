@@ -14,6 +14,9 @@ class InventoryService extends BaseService
 {
     /**
      * Get or create inventory for a product.
+     *
+     * @param int $productId
+     * @return \Moe\Inventory\Models\Inventory
      */
     public function getInventory(int $productId): Inventory
     {
@@ -29,6 +32,10 @@ class InventoryService extends BaseService
 
     /**
      * Check if stock is available.
+     *
+     * @param int $productId
+     * @param int $quantity
+     * @return bool
      */
     public function isStockAvailable(int $productId, int $quantity): bool
     {
@@ -39,6 +46,9 @@ class InventoryService extends BaseService
 
     /**
      * Get current stock.
+     *
+     * @param int $productId
+     * @return int
      */
     public function getStock(int $productId): int
     {
@@ -47,6 +57,11 @@ class InventoryService extends BaseService
 
     /**
      * Increment stock (restock).
+     *
+     * @param int $productId
+     * @param int $quantity
+     * @param string|null $reason
+     * @return void
      */
     public function incrementStock(int $productId, int $quantity, ?string $reason = null): void
     {
@@ -56,6 +71,13 @@ class InventoryService extends BaseService
 
     /**
      * Decrement stock (sale).
+     *
+     * @param int $productId
+     * @param int $quantity
+     * @param string|null $reason
+     * @return void
+     *
+     * @throws \Moe\Inventory\Exceptions\StockNotAvailable
      */
     public function decrementStock(int $productId, int $quantity, ?string $reason = null): void
     {
@@ -65,6 +87,9 @@ class InventoryService extends BaseService
 
     /**
      * Get products with low stock.
+     *
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getLowStockProducts(int $limit = 50): Collection
     {
@@ -76,6 +101,9 @@ class InventoryService extends BaseService
 
     /**
      * Get products out of stock.
+     *
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getOutOfStockProducts(int $limit = 50): Collection
     {
@@ -87,6 +115,10 @@ class InventoryService extends BaseService
 
     /**
      * Get stock movements.
+     *
+     * @param int $inventoryId
+     * @param int $limit
+     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getMovements(int $inventoryId, int $limit = 50): Collection
     {
@@ -98,6 +130,11 @@ class InventoryService extends BaseService
 
     /**
      * Bulk update stock (for import).
+     *
+     * @param array $updates
+     * @return void
+     *
+     * @throws \InvalidArgumentException
      */
     public function bulkUpdate(array $updates): void
     {

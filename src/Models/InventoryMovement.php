@@ -33,27 +33,50 @@ class InventoryMovement extends Model
         'balance_after' => 'integer',
     ];
 
+    /**
+     * @param array $attributes
+     */
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->table = config('inventory.tables.movements', 'inventory_movements');
     }
 
+    /**
+     * Get the inventory relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function inventory(): BelongsTo
     {
         return $this->belongsTo(Inventory::class);
     }
 
+    /**
+     * Get the reference model.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
+     */
     public function reference(): MorphTo
     {
         return $this->morphTo();
     }
 
+    /**
+     * Check if the movement is inbound.
+     *
+     * @return bool
+     */
     public function isInbound(): bool
     {
         return $this->quantity > 0;
     }
 
+    /**
+     * Check if the movement is outbound.
+     *
+     * @return bool
+     */
     public function isOutbound(): bool
     {
         return $this->quantity < 0;

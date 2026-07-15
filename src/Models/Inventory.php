@@ -36,37 +36,73 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         'last_sold_at' => 'datetime',
     ];
 
+    /**
+     * @param array $attributes
+     */
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->table = config('inventory.tables.inventories', 'inventories');
     }
 
+    /**
+     * Get the inventory instance (self).
+     *
+     * @return static
+     */
     public function inventory(): static
     {
         return $this;
     }
 
+    /**
+     * Get the product relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(config('inventory.models.product', 'App\\Models\\Product'));
     }
 
+    /**
+     * Get the movements relationship.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function movements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class, 'inventory_id');
     }
 
+    /**
+     * Get the current stock quantity.
+     *
+     * @return int
+     */
     public function getStock(): int
     {
         return $this->quantity;
     }
 
+    /**
+     * Check if stock is available for the given quantity.
+     *
+     * @param int $quantity
+     * @return bool
+     */
     public function isStockAvailable(int $quantity): bool
     {
         return $this->quantity >= $quantity;
     }
 
+    /**
+     * Increment stock by the given quantity.
+     *
+     * @param int $quantity
+     * @param string|null $reason
+     * @return void
+     */
     public function incrementStock(int $quantity, ?string $reason = null): void
     {
         DB::transaction(function () use ($quantity, $reason) {
@@ -84,6 +120,15 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         });
     }
 
+    /**
+     * Decrement stock by the given quantity.
+     *
+     * @param int $quantity
+     * @param string|null $reason
+     * @return void
+     *
+     * @throws \Moe\Inventory\Exceptions\StockNotAvailable
+     */
     public function decrementStock(int $quantity, ?string $reason = null): void
     {
         DB::transaction(function () use ($quantity, $reason) {
@@ -109,21 +154,43 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         });
     }
 
+    /**
+     * Restock the inventory.
+     *
+     * @param int $quantity
+     * @param string|null $reference
+     * @return void
+     */
     public function restock(int $quantity, ?string $reference = null): void
     {
         $this->incrementStock($quantity, $reference ?? 'restock');
     }
 
+    /**
+     * Get the minimum stock level.
+     *
+     * @return int
+     */
     public function getMinimumStock(): int
     {
         return $this->minimum_stock;
     }
 
+    /**
+     * Check if stock is low.
+     *
+     * @return bool
+     */
     public function isLowStock(): bool
     {
         return $this->quantity <= $this->minimum_stock;
     }
 
+    /**
+     * Check if stock is out.
+     *
+     * @return bool
+     */
     public function isOutOfStock(): bool
     {
         return $this->quantity <= 0;
