@@ -15,36 +15,47 @@ class InventoryServiceTest extends TestCase
         $this->service = new InventoryService();
     }
 
-    public function test_can_create_inventory()
+    public function test_can_get_or_create_inventory()
     {
-        $inventory = $this->service->createInventory(1, 100);
+        $inventory = $this->service->getInventory(1);
 
         $this->assertInstanceOf(Inventory::class, $inventory);
         $this->assertEquals(1, $inventory->product_id);
-        $this->assertEquals(100, $inventory->quantity);
+        $this->assertEquals(0, $inventory->quantity);
     }
 
-    public function test_can_add_stock()
+    public function test_can_increment_stock()
     {
-        $inventory = $this->service->createInventory(1, 100);
-        $this->service->addStock($inventory, 50, 'restock', 'Restok barang');
+        $this->service->incrementStock(1, 50, 'Restok barang');
 
-        $this->assertEquals(150, $inventory->fresh()->quantity);
+        $inventory = $this->service->getInventory(1);
+        $this->assertEquals(50, $inventory->quantity);
     }
 
-    public function test_can_remove_stock()
+    public function test_can_decrement_stock()
     {
-        $inventory = $this->service->createInventory(1, 100);
-        $this->service->removeStock($inventory, 30, 'sale', 'Terjual');
+        $inventory = $this->service->getInventory(1);
+        $inventory->update(['quantity' => 100]);
 
-        $this->assertEquals(70, $inventory->fresh()->quantity);
+        $this->service->decrementStock(1, 30, 'Terjual');
+
+        $this->assertEquals(70, $this->service->getInventory(1)->quantity);
     }
 
-    public function test_cannot_remove_stock_below_zero()
+    public function test_is_stock_available()
     {
-        $this->expectException(\Exception::class);
+        $this->service->incrementStock(1, 10, 'Restok');
 
-        $inventory = $this->service->createInventory(1, 10);
-        $this->service->removeStock($inventory, 20, 'sale', 'Terjual');
+        $this->assertTrue($this->service->isStockAvailable(1, 5));
+        $this->assertFalse($this->service->isStockAvailable(1, 15));
+    }
+
+    public function test_low_stock_detection()
+    {
+        $inventory = $this->service->getInventory(1);
+        $inventory->update(['quantity' => 5, 'minimum_stock' => 10]);
+
+        $lowStock = $this->service->getLowStockProducts();
+        $this->assertCount(1, $lowStock);
     }
 }

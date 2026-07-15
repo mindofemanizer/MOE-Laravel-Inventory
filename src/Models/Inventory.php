@@ -5,8 +5,10 @@ namespace Moe\Inventory\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Moe\Inventory\Contracts\StockableInterface;
 use Moe\Inventory\Contracts\RestockableInterface;
+use Moe\Inventory\Exceptions\StockNotAvailable;
 
 class Inventory extends Model implements StockableInterface, RestockableInterface
 {
@@ -37,6 +39,11 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         $this->table = config('inventory.tables.inventories', 'inventories');
     }
 
+    public function inventory()
+    {
+        return $this;
+    }
+
     public function product()
     {
         return $this->belongsTo(config('inventory.models.product', 'App\\Models\\Product'));
@@ -59,36 +66,44 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
 
     public function incrementStock(int $quantity, ?string $reason = null): void
     {
-        $this->increment('quantity', $quantity);
-        $this->update(['last_restock_at' => now()]);
+        DB::transaction(function () use ($quantity, $reason) {
+            $this->increment('quantity', $quantity);
+            $this->update(['last_restock_at' => now()]);
+            $after = $this->fresh()->quantity;
 
-        $this->movements()->create([
-            'type' => 'in',
-            'quantity' => $quantity,
-            'reason' => $reason,
-            'balance_before' => $this->fresh()->quantity - $quantity,
-            'balance_after' => $this->fresh()->quantity,
-        ]);
+            $this->movements()->create([
+                'type' => 'in',
+                'quantity' => $quantity,
+                'reason' => $reason,
+                'balance_before' => $after - $quantity,
+                'balance_after' => $after,
+            ]);
+        });
     }
 
     public function decrementStock(int $quantity, ?string $reason = null): void
     {
-        if (! $this->isStockAvailable($quantity)) {
-            throw new \Moe\Core\Exceptions\StockNotAvailable(
-                "Stok tidak mencukupi. Dibutuhkan: {$quantity}, Tersedia: {$this->quantity}"
-            );
-        }
+        DB::transaction(function () use ($quantity, $reason) {
+            $fresh = $this->fresh();
 
-        $this->decrement('quantity', $quantity);
-        $this->update(['last_sold_at' => now()]);
+            if ((int) $fresh->quantity < $quantity) {
+                throw new StockNotAvailable(
+                    "Stok tidak mencukupi. Dibutuhkan: {$quantity}, Tersedia: {$fresh->quantity}"
+                );
+            }
 
-        $this->movements()->create([
-            'type' => 'out',
-            'quantity' => -$quantity,
-            'reason' => $reason,
-            'balance_before' => $this->fresh()->quantity + $quantity,
-            'balance_after' => $this->fresh()->quantity,
-        ]);
+            $fresh->decrement('quantity', $quantity);
+            $fresh->update(['last_sold_at' => now()]);
+            $after = $fresh->fresh()->quantity;
+
+            $fresh->movements()->create([
+                'type' => 'out',
+                'quantity' => -$quantity,
+                'reason' => $reason,
+                'balance_before' => $after + $quantity,
+                'balance_after' => $after,
+            ]);
+        });
     }
 
     public function restock(int $quantity, ?string $reference = null): void

@@ -21,11 +21,19 @@ class TestCase extends Orchestra
             'database' => ':memory:',
             'prefix' => '',
         ]);
+        $app['config']->set('inventory.models.product', \Moe\Inventory\Tests\Stubs\Product::class);
     }
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        \Illuminate\Support\Facades\Schema::create('products', function ($table) {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
+        });
+
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 }
