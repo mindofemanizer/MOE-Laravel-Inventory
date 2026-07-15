@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Moe\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InventoryMovement extends Model
@@ -41,7 +44,7 @@ class InventoryMovement extends Model
         return $this->belongsTo(Inventory::class);
     }
 
-    public function reference()
+    public function reference(): MorphTo
     {
         return $this->morphTo();
     }

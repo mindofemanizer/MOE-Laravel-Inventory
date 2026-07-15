@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Moe\Inventory\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Moe\Core\Base\BaseService;
 use Moe\Inventory\Models\Inventory;
@@ -63,7 +66,7 @@ class InventoryService extends BaseService
     /**
      * Get products with low stock.
      */
-    public function getLowStockProducts(int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    public function getLowStockProducts(int $limit = 50): Collection
     {
         return Inventory::whereColumn('quantity', '<=', 'minimum_stock')
             ->with('product')
@@ -74,7 +77,7 @@ class InventoryService extends BaseService
     /**
      * Get products out of stock.
      */
-    public function getOutOfStockProducts(int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    public function getOutOfStockProducts(int $limit = 50): Collection
     {
         return Inventory::where('quantity', '<=', 0)
             ->with('product')
@@ -85,7 +88,7 @@ class InventoryService extends BaseService
     /**
      * Get stock movements.
      */
-    public function getMovements(int $inventoryId, int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    public function getMovements(int $inventoryId, int $limit = 50): Collection
     {
         return InventoryMovement::where('inventory_id', $inventoryId)
             ->latest()
@@ -100,8 +103,12 @@ class InventoryService extends BaseService
     {
         DB::transaction(function () use ($updates) {
             foreach ($updates as $update) {
-                $inventory = $this->getInventory($update['product_id']);
-                $inventory->update(['quantity' => $update['quantity']]);
+                if (! isset($update['product_id'], $update['quantity'])) {
+                    throw new \InvalidArgumentException('Each update must contain product_id and quantity');
+                }
+
+                $inventory = $this->getInventory((int) $update['product_id']);
+                $inventory->update(['quantity' => (int) $update['quantity']]);
             }
         });
     }

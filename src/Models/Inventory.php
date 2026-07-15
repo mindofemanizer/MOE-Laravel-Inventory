@@ -1,13 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Moe\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
-use Moe\Inventory\Contracts\StockableInterface;
 use Moe\Inventory\Contracts\RestockableInterface;
+use Moe\Inventory\Contracts\StockableInterface;
 use Moe\Inventory\Exceptions\StockNotAvailable;
 
 class Inventory extends Model implements StockableInterface, RestockableInterface
@@ -39,12 +42,12 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         $this->table = config('inventory.tables.inventories', 'inventories');
     }
 
-    public function inventory()
+    public function inventory(): static
     {
         return $this;
     }
 
-    public function product()
+    public function product(): BelongsTo
     {
         return $this->belongsTo(config('inventory.models.product', 'App\\Models\\Product'));
     }
@@ -86,15 +89,15 @@ class Inventory extends Model implements StockableInterface, RestockableInterfac
         DB::transaction(function () use ($quantity, $reason) {
             $fresh = $this->fresh();
 
-            if ((int) $fresh->quantity < $quantity) {
+            if (! $fresh || (int) $fresh->quantity < $quantity) {
                 throw new StockNotAvailable(
-                    "Stok tidak mencukupi. Dibutuhkan: {$quantity}, Tersedia: {$fresh->quantity}"
+                    "Stok tidak mencukupi. Dibutuhkan: {$quantity}, Tersedia: " . ($fresh?->quantity ?? 0)
                 );
             }
 
             $fresh->decrement('quantity', $quantity);
             $fresh->update(['last_sold_at' => now()]);
-            $after = $fresh->fresh()->quantity;
+            $after = $fresh->fresh()?->quantity ?? 0;
 
             $fresh->movements()->create([
                 'type' => 'out',
