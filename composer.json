@@ -1,0 +1,41 @@
+{
+    "name": "moe/laravel-inventory",
+    "description": "Inventory module for MOE ecosystem — Stock, Warehouse, Restock",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "MindOfEmanizer",
+            "email": "emanizer@example.com"
+        }
+    ],
+    "keywords": ["laravel", "inventory", "stock", "warehouse", "moe"],
+    "autoload": {
+        "psr-4": {
+            "Moe\\Inventory\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Moe\\Inventory\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0|^13.0",
+        "moe/laravel-core": "*"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Moe\\Inventory\\InventoryServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
